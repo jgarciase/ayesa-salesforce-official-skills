@@ -1,0 +1,50 @@
+name: Sync Salesforce skills
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Upstream git ref (branch, tag, or commit)
+        required: false
+        default: main
+      force:
+        description: Force re-clone vendor cache
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+  schedule:
+    # Weekly check for upstream updates (Monday 06:00 UTC)
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync skills from forcedotcom/sf-skills
+        shell: pwsh
+        run: |
+          $args = @("-Ref", "${{ github.event.inputs.ref || 'main' }}")
+          if ("${{ github.event.inputs.force }}" -eq "true") { $args += "-Force" }
+          ./scripts/sync-skills.ps1 @args
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: sync official Salesforce skills from upstream"
+          title: "chore: sync official Salesforce skills from upstream"
+          body: |
+            Automated sync from [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills).
+
+            Review `skills-lock.json` for the upstream commit and skill list before merging.
+          branch: chore/sync-sf-skills
+          delete-branch: true

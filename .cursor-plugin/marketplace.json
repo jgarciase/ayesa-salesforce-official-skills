@@ -1,0 +1,18 @@
+﻿{
+    "name":  "ayesa-salesforce-official-skills",
+    "displayName":  "Salesforce Official Skills",
+    "owner":  {
+                  "name":  "AYESA"
+              },
+    "metadata":  {
+                     "description":  "Cursor plugin bundling official Salesforce skills from forcedotcom/sf-skills with on-demand sync.",
+                     "version":  "1.30.0"
+                 },
+    "plugins":  [
+                    {
+                        "name":  "ayesa-salesforce-official-skills",
+                        "source":  ".",
+                        "description":  "Official Salesforce agent skills: Apex, LWC, Flow, metadata deploy, Agentforce, Data Cloud, OmniStudio, and integrations."
+                    }
+                ]
+}

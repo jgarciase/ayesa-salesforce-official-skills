@@ -1,0 +1,12 @@
+{
+  "name": "ayesa-salesforce-official-skills",
+  "version": "1.30.0",
+  "private": true,
+  "description": "Cursor plugin packaging official Salesforce skills from forcedotcom/sf-skills",
+  "license": "CC-BY-NC-4.0",
+  "scripts": {
+    "sync:skills": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-skills.ps1",
+    "sync:skills:force": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-skills.ps1 -Force",
+    "sync:skills:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-skills.ps1 -Ref"
+  }
+}

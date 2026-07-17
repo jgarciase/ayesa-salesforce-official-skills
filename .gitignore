@@ -1,0 +1,12 @@
+# Vendor clone used by sync script (never commit)
+.vendor/
+
+# Temporary clones during development
+.tmp-sf-skills/
+
+# Node
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
