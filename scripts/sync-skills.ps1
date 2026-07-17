@@ -115,7 +115,8 @@ function Get-JsonFromFile([string]$Path) {
 
 function Set-JsonFile([string]$Path, $Object) {
     $json = $Object | ConvertTo-Json -Depth 10
-    Set-Content -LiteralPath $Path -Value $json -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $json, $utf8NoBom)
 }
 
 function Sync-SkillDirectories {

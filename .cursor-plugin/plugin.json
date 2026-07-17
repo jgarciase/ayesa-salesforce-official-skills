@@ -1,13 +1,11 @@
-﻿{
+{
     "name":  "ayesa-salesforce-official-skills",
-    "displayName":  "Salesforce Official Skills",
     "description":  "Official Salesforce agent skills from forcedotcom/sf-skills: Apex, LWC, Flow, metadata, Agentforce, Data Cloud, OmniStudio, and more.",
     "version":  "1.30.0",
     "author":  {
                    "name":  "AYESA"
                },
     "repository":  "https://github.com/jgarciase/ayesa-salesforce-official-skills",
-    "license":  "CC-BY-NC-4.0",
     "keywords":  [
                      "salesforce",
                      "sfdx",
@@ -19,12 +17,6 @@
                      "skills",
                      "sf-skills"
                  ],
-    "category":  "salesforce",
-    "tags":  [
-                 "salesforce",
-                 "agent-skills",
-                 "official"
-             ],
     "skills":  ".cursor/skills",
     "commands":  ".cursor/commands"
 }

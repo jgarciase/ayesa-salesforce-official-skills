@@ -1,9 +1,9 @@
-﻿{
+{
     "source":  "https://github.com/forcedotcom/sf-skills",
     "ref":  "main",
     "commit":  "587641d564350a93386f6983bcf964ac935046a8",
     "version":  "1.30.0",
-    "syncedAt":  "2026-07-17T07:38:38.5050494Z",
+    "syncedAt":  "2026-07-17T09:02:11.6705345Z",
     "skillCount":  90,
     "skills":  [
                    "agentforce-architecture-analyze",
