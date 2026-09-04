@@ -39,7 +39,6 @@ Infer from the user's request:
 | Always use `--json` flag | Provides structured output for reliable parsing and error handling |
 | Snapshot names must be unique in the Dev Hub | Duplicate names cause creation to fail |
 | Source org must be a scratch org | Snapshots only work with scratch orgs, not sandboxes or production orgs |
-| Dev Hub must have snapshot feature enabled | "NOT_FOUND" error means Dev Hub doesn't support snapshots |
 | Source org accepts ID or username/alias | Command auto-resolves aliases to org IDs; org IDs start with 00D |
 | Include description for tracking | Best practice: reference version control tag or commit ID in description |
 
@@ -49,7 +48,8 @@ Infer from the user's request:
 
 | Issue | Resolution |
 |-------|------------|
-| "NOT_FOUND" error when creating snapshot | Dev Hub doesn't have snapshot feature enabled — contact admin to enable in Dev Hub settings |
+| Error creating snapshot | Surface the CLI's own error unchanged; the message states what to do next |
+| `@salesforce/plugin-signups does not exist in the registry` | Snapshot commands live in the `signups` plugin, which ships bundled with a normal `sf` install. This error means the CLI environment is incomplete (slim image) or the plugin registry is unreachable (offline). Because the registry is unavailable, `sf plugins install` cannot succeed — do NOT attempt it (it will fail and loop). Surface the error and advise the user to repair their environment from a connected machine: reinstall or update the Salesforce CLI (for example with `sf update`, or a fresh global CLI install through their normal package manager) so the bundled `signups` plugin is present, or run in an image that already includes it. Never run any install/repair from inside the skill. |
 | "No org found for <alias>" error | Source org alias doesn't exist or isn't authenticated — verify with `sf org list` |
 | Snapshot name already exists | Use a different unique name — snapshot names must be unique per Dev Hub |
 | "An error while created the org snapshot" | Generic error — check that source org is a scratch org and still active |

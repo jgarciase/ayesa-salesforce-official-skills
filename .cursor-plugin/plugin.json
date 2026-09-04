@@ -1,7 +1,7 @@
 {
     "name":  "ayesa-salesforce-official-skills",
     "description":  "Official Salesforce agent skills from forcedotcom/sf-skills: Apex, LWC, Flow, metadata, Agentforce, Data Cloud, OmniStudio, and more.",
-    "version":  "1.31.0",
+    "version":  "1.47.0",
     "author":  {
                    "name":  "AYESA"
                },

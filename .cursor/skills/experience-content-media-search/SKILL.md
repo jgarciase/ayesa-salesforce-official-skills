@@ -1,9 +1,18 @@
 ---
 name: experience-content-media-search
 description: "Searches for and retrieves existing visual media (images, logos, icons, photos, graphics, banners, thumbnails, hero images, backgrounds) from sources such as Salesforce CMS, Data 360 or any other source. Use this skill ANY TIME a user request involves finding, searching, getting, fetching, retrieving, grab, looking up, locating media. NEVER call search_media_cms_channels, search_electronic_media tools directly — always go through this skill first. This skill must be activated before any tool is used for media search or retrieval, without exception.  Takes PRIORITY and activates FIRST when ANY media search/retrieval is mentioned, regardless of what else happens with the media afterward. Triggers for requests like \"search for logo\", \"find hero image\", \"get company logo\", \"locate icons\", \"fetch background image\", \"retrieve product photos\". Handles the search and source selection workflow. Does not apply when the request is about brand search, to generate NEW images with AI, or edit existing images."
-compatibility: "Requires search_media_cms_channels and/or search_electronic_media MCP tools"
 metadata:
-  version: "1.0"
+  version: "1.1"
+  domains: ["Experience"]
+  relatedSkills:
+    - "experience-content-media-stock-image-search"
+  mcpTools:
+    content-readonly:
+      tools:
+        - search_media_cms_channels
+        - search_electronic_media
+        - get_channels
+      semver: "^1.0.0"
 ---
 
 # Media Search
@@ -26,6 +35,7 @@ Universal routing skill for searching and retrieving existing images and media.
 - Create graphics or designs from scratch
 - Edit or modify existing images
 - Build custom visuals or diagrams
+- Search for stock photography or royalty-free images (use `experience-content-media-stock-image-search`)
 
 ## Before You Search
 
@@ -41,17 +51,17 @@ When a user requests to find an image:
 
 
 **Example of what NOT to do:**
-- ❌ Calling ANY tool before the user picks a source (MCP tools, file reads, descriptor checks, etc.)
-- ❌ "Checking which MCP tools are available" — do not probe or discover tools via tool calls
-- ❌ Immediately calling `search_electronic_media` or `search_media_cms_channels`
-- ❌ Reading MCP tool descriptors or schemas to see what's available
-- ❌ Deciding which search source to use without asking
+- Calling ANY tool before the user picks a source (MCP tools, file reads, descriptor checks, etc.)
+- "Checking which MCP tools are available" — do not probe or discover tools via tool calls
+- Immediately calling `search_electronic_media` or `search_media_cms_channels`
+- Reading MCP tool descriptors or schemas to see what's available
+- Deciding which search source to use without asking
 
 **Example of what TO do:**
-- ✅ Respond with ONLY text — a numbered list of search sources
-- ✅ Ask: "Which option would you like to use?"
-- ✅ Wait for user to reply with their choice
-- ✅ Then (and only then) call the tool they selected
+- Respond with ONLY text — a numbered list of search sources
+- Ask: "Which option would you like to use?"
+- Wait for user to reply with their choice
+- Then (and only then) call the tool they selected
 
 **Your first response when this skill triggers MUST be a text-only message presenting search sources. No tool calls. No exceptions.**
 
@@ -62,7 +72,7 @@ When a user requests to find an image:
 
 Copy this checklist and track your progress:
 
-```
+```text
 Media Search Progress:
 - [ ] Step 1: Check your own tool list for available search tools (no tool calls — just inspect what's in your context)
 - [ ] Step 2: Present only the available options to the user as a numbered list (plain text, no tool calls)
@@ -91,7 +101,7 @@ Look at the tools already in your context and check for these names:
 
 Include ONLY the sources whose tools you actually have. Number them sequentially.
 
-```
+```text
 I can help you find that image. Where would you like to search?
 
 [NUMBER]. [SEARCH SOURCE NAME] — [Brief description]
@@ -108,7 +118,7 @@ After presenting the list, STOP. Do not call any tool. Do not proceed. Wait for 
 ### Examples
 
 **Both tools available:**
-```
+```text
 I can help you find that image. Where would you like to search?
 
 1. Search using Data 360 hybrid search — Semantic search across Salesforce CMS and connected DAMs
@@ -119,7 +129,7 @@ Which option would you like to use?
 ```
 
 **Only `search_media_cms_channels` available:**
-```
+```text
 I can help you find that image. Where would you like to search?
 
 1. Search using keywords — Search Salesforce CMS by keywords and taxonomies
@@ -129,7 +139,7 @@ Which option would you like to use?
 ```
 
 **Only `search_electronic_media` available:**
-```
+```text
 I can help you find that image. Where would you like to search?
 
 1. Search using Data 360 hybrid search — Semantic search across Salesforce CMS and connected DAMs
@@ -139,7 +149,7 @@ Which option would you like to use?
 ```
 
 **Neither tool available:**
-```
+```text
 No automated media search sources are currently configured. Please provide a direct URL or asset library path.
 ```
 
@@ -147,7 +157,7 @@ No automated media search sources are currently configured. Please provide a dir
 
 ## Executing the Selected Search Method
 
-**⚠️ ONLY reach this step if the user has explicitly selected an option from your numbered list.**
+**ONLY reach this step if the user has explicitly selected an option from your numbered list.**
 
 If you haven't shown options yet, go back to the "Presenting Search Sources" section first.
 
@@ -186,8 +196,7 @@ After the user selects an option, execute the corresponding search method below.
     "searchKeyword": "keyword1 OR keyword2 OR keyword3",
     "taxonomyExpression": "{\"OR\": [\"Taxonomy1\", \"Taxonomy2\"]}",
     "searchLanguage": "en_US",
-    "channelIds": "",
-    "channelType": "PublicUnauthenticated",
+    "contentAccessScope": "Public",
     "contentTypeFqn": "sfdc_cms__image",
     "pageOffset": 0,
     "searchLimit": 5
@@ -199,8 +208,7 @@ After the user selects an option, execute the corresponding search method below.
 - `searchKeyword`: Join keywords with ` OR ` (space-OR-space). Use empty string if no keywords.
 - `taxonomyExpression`: Stringify JSON object `{"OR": ["term1", "term2"]}`. Use `"{}"` if no taxonomies.
 - `searchLanguage`: Locale with underscore (e.g., `en_US`)
-- `channelIds`: Always empty string
-- `channelType`: Always `"PublicUnauthenticated"`
+- `contentAccessScope`: Always `"Public"` (covers both public-unauthenticated and public Experience Cloud site channels)
 - `contentTypeFqn`: Always `"sfdc_cms__image"`
 - `pageOffset`: Start at `0`, increment by `searchLimit` for pagination
 - `searchLimit`: Default `5`, adjust if user requests more
@@ -214,8 +222,7 @@ Query: "luxury apartment with river view"
     "searchKeyword": "apartment OR villa OR penthouse OR residence",
     "taxonomyExpression": "{\"OR\": [\"Luxury\", \"Premium\", \"Waterfront\", \"Riverside\"]}",
     "searchLanguage": "en_US",
-    "channelIds": "",
-    "channelType": "PublicUnauthenticated",
+    "contentAccessScope": "Public",
     "contentTypeFqn": "sfdc_cms__image",
     "pageOffset": 0,
     "searchLimit": 5
@@ -230,8 +237,7 @@ Query: "bright spacious room" (no concrete nouns)
     "searchKeyword": "",
     "taxonomyExpression": "{\"OR\": [\"Bright\", \"Spacious\", \"Open\", \"Airy\"]}",
     "searchLanguage": "en_US",
-    "channelIds": "",
-    "channelType": "PublicUnauthenticated",
+    "contentAccessScope": "Public",
     "contentTypeFqn": "sfdc_cms__image",
     "pageOffset": 0,
     "searchLimit": 5
@@ -246,8 +252,7 @@ Query: "car images" (no descriptive terms)
     "searchKeyword": "car OR automobile OR vehicle OR auto",
     "taxonomyExpression": "{}",
     "searchLanguage": "en_US",
-    "channelIds": "",
-    "channelType": "PublicUnauthenticated",
+    "contentAccessScope": "Public",
     "contentTypeFqn": "sfdc_cms__image",
     "pageOffset": 0,
     "searchLimit": 5
@@ -255,7 +260,7 @@ Query: "car images" (no descriptive terms)
 }
 ```
 
-6. **Call the tool** with the exact JSON payload
+6. **Call the tool** with the exact JSON payload — show the payload in your response before calling the tool
 
 ### Search using Data 360 hybrid search
 
@@ -286,7 +291,7 @@ Ask the user to provide:
 3. **Receive the user's selection** from the tool response
 4. **Then** apply the selected image
 
-```
+```text
 I found 4 images. Which one would you like to use?
 
 1. Luxury Apartment Exterior
