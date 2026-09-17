@@ -3,8 +3,8 @@ name: experience-ui-bundle-site-generate
 description: "MUST activate when the project contains a uiBundles/*/src/ directory and the task involves creating or configuring site infrastructure. Use this skill when creating or configuring a Salesforce Digital Experience Site for hosting a UI bundle. Activate when files matching digitalExperiences/, networks/, customSite/, or DigitalExperienceBundle exist and need modification, or when the user wants to publish, host, or configure guest access for their app. Also use this skill to add multi-language, multi-locale, internationalization, or translation support to such a site by declaring a default locale and additional supported languages via the sfdc_cms__languageSettings content type. DO NOT TRIGGER for LWR (non-React) sites; use experience-lwr-site-generate instead."
 metadata:
   version: "1.3"
-  minApiVersion: "65.0"
   domains: ["Experience"]
+  minApiVersion: "65.0"
   relatedSkills:
     - experience-lwr-site-generate
   cliTools:

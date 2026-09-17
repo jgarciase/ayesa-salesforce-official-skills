@@ -14,9 +14,8 @@ This repository is a **thin distribution layer**: skills are synced from upstrea
 | --- | --- | --- |
 | Plugin manifest | [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) | Cursor plugin metadata and skill paths |
 | Team marketplace | [`.cursor-plugin/marketplace.json`](.cursor-plugin/marketplace.json) | Required for Cursor Teams import |
-| Skills (~90) | [`.cursor/skills/`](.cursor/skills/) | Synced from upstream `skills/` |
+| Skills | [`.cursor/skills/`](.cursor/skills/) | Synced from upstream `skills/` (see `skills-lock.json` for count) |
 | Sync lock | [`skills-lock.json`](skills-lock.json) | Upstream ref, commit, version, skill list |
-| Update command | [`.cursor/commands/update-skills.md`](.cursor/commands/update-skills.md) | Slash command docs for maintainers |
 
 ---
 
@@ -33,7 +32,7 @@ This repository is a **thin distribution layer**: skills are synced from upstrea
 Both manifest files must exist on the default branch:
 
 - `.cursor-plugin/marketplace.json` — what the dashboard imports
-- `.cursor-plugin/plugin.json` — component paths (skills, commands)
+- `.cursor-plugin/plugin.json` — component paths (skills only)
 
 ### Local testing
 
@@ -47,7 +46,9 @@ Then **Developer: Reload Window** and verify skills under **Customize**.
 
 ---
 
-## Update skills from upstream
+## Update skills from upstream (maintainers only)
+
+> **Admin workflow.** This is not exposed to plugin users. Run it from this repository to pull upstream changes, then commit and push.
 
 Requires **git** and **PowerShell 5.1+** (Windows) or PowerShell Core (macOS/Linux).
 
@@ -85,7 +86,6 @@ After syncing, commit the changes and reload Cursor (or re-import in the team ma
 ```text
 .
 ├── .cursor/
-│   ├── commands/          # Maintainer commands (update-skills)
 │   └── skills/            # Synced official Salesforce skills (do not edit manually)
 ├── .cursor-plugin/
 │   ├── plugin.json        # Plugin manifest
