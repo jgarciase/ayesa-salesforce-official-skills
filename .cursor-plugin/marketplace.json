@@ -5,7 +5,7 @@
               },
     "metadata":  {
                      "description":  "Cursor plugin bundling official Salesforce skills from forcedotcom/sf-skills with on-demand sync.",
-                     "version":  "1.55.0"
+                     "version":  "1.62.0"
                  },
     "plugins":  [
                     {
