@@ -83,7 +83,11 @@ function Update-VendorClone {
     try {
         Write-Step "Fetching ref '$Ref' from upstream"
         git fetch --depth 1 origin $Ref | Out-Null
-        git checkout $Ref | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "git fetch failed for ref '$Ref'" }
+        # Checkout FETCH_HEAD (detached) so the working tree always matches the
+        # freshly fetched upstream commit, not a stale local branch.
+        git checkout --force --detach FETCH_HEAD | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "git checkout FETCH_HEAD failed" }
         git sparse-checkout set skills | Out-Null
     }
     finally {
