@@ -235,3 +235,7 @@ Write-Host "  Commit  : $commit"
 Write-Host "  Ref     : $Ref"
 Write-Host "  Skills  : $($skillNames.Count)"
 Write-Host "  Lock    : $LockFile"
+
+# robocopy devuelve 1-7 en caso de éxito; evitar que pwsh lo propague como fallo.
+$global:LASTEXITCODE = 0
+exit 0
