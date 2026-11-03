@@ -28,9 +28,18 @@ Creates `MessagingChannel` metadata XML for Salesforce Messaging for In-App and 
 
 ---
 
+## Entry points and transport
+
+- **Delegated** (`context.calledFrom == "service-onboarding"`): use the approved `values`, ask nothing, and return `failed` naming any missing required key. **Standalone** (no `context`): run Clarifying Questions.
+- **Transport A** (primary): headless-360 MCP `dispatch` / `dispatch_readonly` on `/headless/metadata`. **Transport B**: the `sf` commands below, only where a probe shows Transport A unavailable.
+
+Details: `references/onboarding_contract.md` (§1 entry points, §2 transport, §3 pre-scan, §5 result).
+
+---
+
 ## Clarifying Questions
 
-Before generating, ask the user if not already clear:
+Before generating, ask the user if not already clear (standalone only):
 
 - What is the channel name / label? (used for `masterLabel` and file name)
 - What routing type? (Omni-Channel Flow, Omni-Channel Queue, User, or Agentforce Service Agent)
@@ -80,19 +89,21 @@ All steps are sequential. Do not skip or reorder.
 
 1. **Verify org API version** — run `scripts/check-api-version.sh 67.0 <org-alias>` and report any errors it returns. If the script fails, generate a `sfdx-project.json` in the metadata output folder with `"sourceApiVersion": "67.0"`.
 
-2. **Collect inputs** — confirm the channel label, routing type, routing target, and verification settings from the user per Clarifying Questions above.
+2. **Collect inputs** — standalone: per Clarifying Questions. Delegated: from `values`. Then probe transport with a read-only `GET` of `MessagingChannel` (contract §2).
 
 3. **Determine file name** — run `scripts/normalize-channel-name.sh "<LABEL>"` and surface any errors it returns.
 
-4. **Verify routing target exists** — query the org to confirm the referenced routing target exists:
+3a. **Pre-scan** — `GET` `MessagingChannel` by the step 3 name (contract §3): none → create; matches and active → no write, `already-configured`, skip to Phase 4; matches but inactive → activate only (step 15); differs → announce each change, then write the full document (standalone: ask first).
+
+4. **Verify routing target exists** — skip when step 3a ended in `already-configured` or activate-only, so a re-run never creates a queue. Query the org to confirm the referenced routing target exists:
    - For Queue: `sf data query --query "SELECT Id, DeveloperName FROM Group WHERE Type='Queue' AND DeveloperName='<QUEUE_NAME>'" --target-org <org-alias>`
    - For Flow: `sf data query --query "SELECT Id, ApiName FROM FlowDefinitionView WHERE ApiName='<FLOW_NAME>' AND IsActive=true" --target-org <org-alias>`
    - For User: `sf data query --query "SELECT Id, Username FROM User WHERE Id='<USER_ID>' AND IsActive=true" --target-org <org-alias>`
    - For ASA: `sf data query --query "SELECT Id, DeveloperName FROM BotDefinition WHERE DeveloperName='<BOT_NAME>'" --target-org <org-alias>`
    - Also verify the fallback queue exists (required for Flow, User, and ASA routing)
    
-   If any target is not found, inform the user and ask whether to create it. If the user confirms:
-   - For Queue: generate a `.queue-meta.xml` with `MessagingSession` as the `queueSobject` type and deploy it before the channel. **A new queue is unusable for routing without a `QueueRoutingConfig` — a channel deployed against a queue with none fails at session-start with "Agents are not available. Try again later," even though the channel itself deploys and activates cleanly.** Immediately after the queue deploys, resolve or create its routing config by following `service-agentforce-channel-configure`'s `references/queue-resolution.md` Step 4 — do not defer this to a later skill invocation, since this may be the only place a newly created queue is ever touched.
+   If any target is not found: standalone — inform the user and ask whether to create it. Delegated — return `failed` naming the missing target; never create it. If the standalone user confirms creating:
+   - For Queue: generate a `.queue-meta.xml` with `MessagingSession` as the `queueSobject` type and deploy it before the channel. **A new queue needs a `QueueRoutingConfig`, or sessions fail with "Agents are not available. Try again later" even though the channel deploys and activates.** Right after the queue deploys, resolve or create one per `service-agentforce-channel-configure`'s `references/queue-resolution.md` Step 4 — do not defer it.
    - For Flow/User/ASA: inform the user that the flow, user, or bot must be created separately (out of scope for this skill)
 
 5. **Read the channel settings reference** — load `references/channel_settings.md` to understand all available configuration options and their valid values.
@@ -110,10 +121,7 @@ All steps are sequential. Do not skip or reorder.
    | User | `User` | `sessionHandlerUser` + `sessionHandlerQueue` (fallback) |
    | Agentforce Service Agent | `AgentforceServiceAgent` | `sessionHandlerQueue` (fallback) + `sessionHandlerAsa` (bot dev name — required, see v67 note below) |
 
-   > **v67 note — `<sessionHandlerAsa>` is required in the XML, not rejected.** Confirmed on a v67.0 org: omitting `<sessionHandlerAsa>` causes the deploy to fail with "Missing required Agentforce Service Agent." Include it and the deploy binds `SessionHandlerId` automatically — no post-deploy Data API PATCH needed.
-   > 1. **Verify the bot is Active before channel creation.** The Metadata API rejects binding with "Only active Agentforce Service Agents are supported." Run `sf agent activate -o <org> --api-name <BotDevName>` and confirm `BotVersion.Status = Active` first.
-   > 2. Deploy the XML with `<sessionHandlerType>AgentforceServiceAgent</sessionHandlerType>`, `<sessionHandlerQueue>` (fallback), and `<sessionHandlerAsa>{BotDevName}</sessionHandlerAsa>`.
-   > 3. Verify: `sf data query -o <org> -q "SELECT SessionHandlerId, FallbackQueueId FROM MessagingChannel WHERE DeveloperName='<ChannelDevName>'" --json` — both must be non-null after the deploy, with no separate PATCH step.
+   > **v67 note — `<sessionHandlerAsa>` is required** (omitting it fails with "Missing required Agentforce Service Agent"); the deploy then binds `SessionHandlerId`, no PATCH needed. The bot must be Active first: run `sf agent activate -o <org> --api-name <BotDevName>` and confirm `BotVersion.Status = Active`.
 
 8. **Apply user verification** — if enabled, set `embeddedConfig.authMode` to `Auth` and include `<messagingAuthorizations>`. If not enabled, set `embeddedConfig.authMode` to `UnAuth` and omit `<messagingAuthorizations>`.
 
@@ -130,33 +138,35 @@ All steps are sequential. Do not skip or reorder.
    - `isSaveTranscriptEnabled` — save conversation transcripts
    - `maxFileSize` — maximum attachment size in MB
 
+9a. **Configure session inactivity (optional)** — ask using the Setup labels and set the top-level fields per `references/channel_settings.md` → "Setup Prompts: Session Inactivity".
+
 10. **Configure messaging keywords** — generate `<messagingKeywords>` elements:
     - `OptOut` type with individual `<keyword>` elements: cancel, end, quit, stop, stopall, unsubscribe
     - `Help` type with `<keyword>`: help
 
 11. **Apply standard parameters** — if the user needs standard pre-chat fields, generate `<standardParameters>` elements with `parameterType`. If the channel uses Flow-based routing and the user specifies flow variable mappings, include `<actionParameterMappings>` with `actionParameterName` to map each parameter to a flow input variable.
 
-12. **Apply custom parameters** — if the user needs pre-chat data collection, generate `<customParameters>` elements with `name`, `masterLabel`, `parameterDataType`, `externalParameterName`, and `maxLength`. If the channel uses Flow-based routing and the user specifies flow variable mappings, include `<actionParameterMappings>` with `actionParameterName` to map each parameter to a flow input variable.
+12. **Apply custom parameters** — if the user needs pre-chat data collection, generate `<customParameters>` elements with `name`, `masterLabel`, `parameterDataType`, `externalParameterName`, and `maxLength`. Always set `parameterDataType` to `String` — the channel accepts no other value (the field's actual type, including Checkbox/Number/dropdown, is set at the deployment level via `formFieldType`, not here). If the channel uses Flow-based routing and the user specifies flow variable mappings, include `<actionParameterMappings>` with `actionParameterName` to map each parameter to a flow input variable.
 
 13. **Generate the file** — produce the `.messagingChannel-meta.xml` file following the template structure. Place at the path the user specifies, or default to the project's metadata source path under `messagingChannels/`.
 
 ### Phase 3 — Deploy and Activate
 
-14. **Deploy the channel** — deploy the generated `.messagingChannel-meta.xml` file to the target org:
+14. **Write the channel** — Transport A: `POST` to create, `PUT` the **full** document to update (a minimal PUT drops `embeddedConfig`); check `results[].success`, then re-`GET`. Transport B:
     ```bash
     sf project deploy start --source-dir <path-to-messagingChannels-folder> --target-org <org-alias>
     ```
 
-15a. **ASA routing only — verify the bind landed.** Skip this step for Queue, Flow, and User routing types. Because `<sessionHandlerAsa>` was included in the deployed XML (step 7), the deploy itself binds `SessionHandlerId` — no separate Data API PATCH is needed.
+15a. **ASA routing only — verify the bind landed** (skip for Queue, Flow, User):
 
     ```bash
     sf data query -o <org> --json \
       -q "SELECT SessionHandlerId, FallbackQueueId FROM MessagingChannel WHERE DeveloperName='<CHANNEL_DEV_NAME>'"
     ```
 
-    Both `SessionHandlerId` and `FallbackQueueId` must be non-null. If either is null, confirm `<sessionHandlerAsa>` and `<sessionHandlerQueue>` were both present in the deployed XML and that the bot was Active before the deploy.
+    Both must be non-null; if not, check both handler elements were in the XML and the bot was Active before the deploy.
 
-15. **Activate the channel** — after successful deployment, activate the messaging channel:
+15. **Activate the channel** — after a successful write, activate the messaging channel (`IsActive` is not part of the metadata). Transport A: sObject update `{"IsActive": true}` through `dispatch`. Transport B:
     ```bash
     sf data update record --sobject MessagingChannel --where "DeveloperName='<CHANNEL_NAME>'" --values "IsActive=true" --target-org <org-alias>
     ```
@@ -165,8 +175,10 @@ All steps are sequential. Do not skip or reorder.
 
 16. **Verify against checklist** — confirm all items in the Verification Checklist below pass before presenting output.
 
-17. **Present output** — show the generated file to the user with a summary of configured settings and confirm activation status. Offer next steps:
-    - **Automated responses** — ask if the user wants to configure `<automatedResponses>` (OptOutConfirmation, HelpResponse). If yes, generate elements with `autoResponseContentType: TextResponse`, `language`, and XML-escaped `response` text, then redeploy.
+17. **Report** — delegated: return the contract §5 result and stop. Standalone: continue.
+
+18. **Present output** (standalone) — show the generated file to the user with a summary of configured settings and confirm activation status. Offer next steps:
+    - **Automated responses** — ask which messages the user wants using the Setup labels per `references/channel_settings.md` → "Setup Prompts: Automated Responses", then redeploy.
 
 ---
 
@@ -206,8 +218,10 @@ All steps are sequential. Do not skip or reorder.
 | "Only active Agentforce Service Agents are supported" on deploy | Bot is inactive — run `sf agent activate` before deploying |
 | Flow or ASA routing fails without fallback queue | `sessionHandlerQueue` is mandatory when `sessionHandlerType` is `Flow` or `AgentforceServiceAgent` |
 | JWT verification not working | Connected app and certificate must be configured for the org |
-| Custom parameters not collected | `name` must be unique per channel; `parameterDataType` defaults to `Text` |
-| Automated responses not showing | Use exact `type` values (`OptOutConfirmation`, `HelpResponse`); XML-escape special characters |
+| Custom parameters not collected | `name` must be unique per channel |
+| `<customParameters>` deploy fails: "bad value for restricted picklist field" | `parameterDataType` was set to something other than `String`. Channel custom parameters are always `String`; set the field's actual type (Number, Checkbox, dropdown) at the deployment level, not here |
+| Removing a custom parameter: "can't be deleted as it is referenced elsewhere" | **Check before deploying, not after.** Every deployment on this channel whose pre-chat form uses the param must first drop that field and be published (user-approved); remove the param's `actionParameterMappings` in a separate deploy first. See `references/channel_settings.md` §Removing a Custom Parameter |
+| Automated response / session-inactivity deploy fails | See `references/channel_settings.md` → "Automated Responses", "Session Settings" |
 | Channel deployed but messages not routing | Channel must be activated after deployment — it defaults to inactive |
 | "You can't enable Session-Based Chat for verified users" | Set `isSynchronousChatEnabled` to `false` for Auth channels — session-based chat is only valid for UnAuth |
 
@@ -240,9 +254,8 @@ All steps are sequential. Do not skip or reorder.
 - [ ] If UnAuth, is `anonymousUserJwtExpirationTime` set (default 360, range 60-4320)?
 - [ ] If Auth, is `verifiedUserJwtExpirationTime` set (default 60, range 60-240)?
 
-### Automated Response Checks (only if user requested)
-- [ ] Do all `type` values use valid IDs (`OptOutConfirmation`, `HelpResponse`)?
-- [ ] Are special characters XML-escaped in `response` text?
+### Session Inactivity / Automated Response Checks (only if user requested)
+- [ ] Checked against `references/channel_settings.md` (Session Settings, Automated Responses)?
 
 ### Keyword Checks
 - [ ] Is there at least an `OptOut` keyword type defined?
@@ -271,6 +284,7 @@ File structure follows the template in `assets/messaging_channel_template.xml`.
 | Creating the Omni-Channel Flow for routing | `automation-flow-generate` skill |
 | Creating permission sets for messaging agents | `platform-permission-set-generate` skill |
 | Creating the Embedded Service Deployment | `service-digital-engagement-deployment-configure` skill |
+| Creating the `ConversationMessageDefinition` an automated response references | `conversation-message-definition-builder` skill |
 
 ---
 
@@ -278,6 +292,7 @@ File structure follows the template in `assets/messaging_channel_template.xml`.
 
 | File | When to read |
 |------|-------------|
+| `references/onboarding_contract.md` | Delegated mode (`context.calledFrom == "service-onboarding"`), org writes (transport), module registration |
 | `assets/messaging_channel_template.xml` | Before generating — use as the starting structure |
 | `references/channel_settings.md` | When configuring channel options beyond defaults |
 | `scripts/check-api-version.sh` | Phase 1 — verify org API version meets the passed minimum (67.0) |
