@@ -35,7 +35,14 @@ jobs:
         run: |
           $params = @{ Ref = "${{ github.event.inputs.ref || 'main' }}" }
           if ("${{ github.event.inputs.force }}" -eq "true") { $params["Force"] = $true }
+          $previous = (Get-Content ./skills-lock.json -Raw | ConvertFrom-Json).commit
           ./scripts/sync-skills.ps1 @params
+          $current = (Get-Content ./skills-lock.json -Raw | ConvertFrom-Json).commit
+          if ($previous -eq $current) {
+            Write-Host "Upstream sin cambios ($current); se descartan diferencias de formato/fecha."
+            git restore .
+            git status --short
+          }
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
