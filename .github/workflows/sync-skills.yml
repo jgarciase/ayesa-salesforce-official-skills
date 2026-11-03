@@ -33,9 +33,9 @@ jobs:
       - name: Sync skills from forcedotcom/sf-skills
         shell: pwsh
         run: |
-          $args = @("-Ref", "${{ github.event.inputs.ref || 'main' }}")
-          if ("${{ github.event.inputs.force }}" -eq "true") { $args += "-Force" }
-          ./scripts/sync-skills.ps1 @args
+          $params = @{ Ref = "${{ github.event.inputs.ref || 'main' }}" }
+          if ("${{ github.event.inputs.force }}" -eq "true") { $params["Force"] = $true }
+          ./scripts/sync-skills.ps1 @params
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
