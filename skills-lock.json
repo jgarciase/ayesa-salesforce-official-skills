@@ -1,10 +1,10 @@
 {
   "source": "https://github.com/forcedotcom/sf-skills",
   "ref": "main",
-  "commit": "788b83fb9f5effb4f1548e3090df415704d3ec64",
-  "version": "1.70.0",
-  "syncedAt": "2026-11-16T15:04:28.1167937Z",
-  "skillCount": 262,
+  "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+  "version": "1.71.0",
+  "syncedAt": "2026-11-23T17:35:22.1147226Z",
+  "skillCount": 263,
   "skills": [
     "afcc-setup-coordinate",
     "agentforce-architecture-analyze",
@@ -123,6 +123,7 @@
     "field-service-scheduling-policy-designer-query",
     "field-service-sobject-create-configure",
     "field-service-work-rule-designer-configure",
+    "industries-patient-card-generate",
     "insurance-brokerage-agency-billing-configure",
     "integration-connectivity-connected-app-configure",
     "integration-connectivity-generate",
